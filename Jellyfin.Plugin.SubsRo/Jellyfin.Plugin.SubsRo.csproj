@@ -20,7 +20,6 @@
     </PackageReference>
     <PackageReference Include="AngleSharp" Version="1.1.2" />
     <PackageReference Include="SharpCompress" Version="1.0.0" />
-    <PackageReference Include="UTF.Unknown" Version="2.5.1" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="9.0.0" />
   </ItemGroup>
 
