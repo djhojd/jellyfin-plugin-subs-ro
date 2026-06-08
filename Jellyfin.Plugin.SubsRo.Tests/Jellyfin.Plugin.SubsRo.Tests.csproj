@@ -12,6 +12,9 @@
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.11" />
+    <!-- Plugin excludes Jellyfin runtime assets (server provides them); tests need them at runtime. -->
+    <PackageReference Include="Jellyfin.Controller" Version="10.11.8" />
+    <PackageReference Include="Jellyfin.Common" Version="10.11.8" />
   </ItemGroup>
 
   <ItemGroup>
