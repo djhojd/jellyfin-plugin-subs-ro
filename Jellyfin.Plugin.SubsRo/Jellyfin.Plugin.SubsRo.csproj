@@ -9,6 +9,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <CodeAnalysisRuleSet>../jellyfin.ruleset</CodeAnalysisRuleSet>
+    <!-- Copy third-party NuGet dependencies (AngleSharp, SharpCompress, ...) into the
+         build output so they get packaged. Jellyfin.* assemblies are excluded via
+         ExcludeAssets=runtime above, so they are not copied. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
