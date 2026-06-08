@@ -1,0 +1,18 @@
+name: "subs.ro"
+guid: "a3d5c7e9-1b2f-4a6d-8c3e-9f0b1d2e4c5a"
+version: "1.0.0.0"
+targetAbi: "10.11.0.0"
+framework: "net9.0"
+overview: "Download Romanian subtitles from subs.ro"
+description: >
+  Subtitle provider that downloads Romanian (RO) subtitles from subs.ro for
+  movies that are missing them. Configure Romanian as a subtitle download
+  language on your movie library to use it.
+category: "Subtitles"
+owner: "djhojd"
+artifacts:
+- "Jellyfin.Plugin.SubsRo.dll"
+- "AngleSharp.dll"
+- "SharpCompress.dll"
+changelog: >
+  - Initial release.
