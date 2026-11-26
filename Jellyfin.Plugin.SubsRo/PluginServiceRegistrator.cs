@@ -27,6 +27,12 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
             AutomaticDecompression = DecompressionMethods.All,
         });
 
+        serviceCollection.AddHttpClient<SubsRoApiClient>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.subs.ro");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Jellyfin-Plugin-SubsRo/1.0");
+        });
+
         serviceCollection.AddSingleton<ISubtitleProvider, SubsRoDownloader>();
     }
 }

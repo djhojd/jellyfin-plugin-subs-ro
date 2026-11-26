@@ -1,7 +1,7 @@
 # Jellyfin subs.ro Subtitle Provider
 
 A [Jellyfin](https://jellyfin.org) subtitle provider plugin that downloads Romanian
-subtitles from [subs.ro](https://subs.ro) for movies that are missing them.
+subtitles from [subs.ro](https://subs.ro) for movies and TV episodes that are missing them.
 
 The plugin registers as a standard Jellyfin subtitle provider, so Jellyfin's own
 "download missing subtitles" logic decides *when* to call it — you simply add
@@ -9,11 +9,22 @@ The plugin registers as a standard Jellyfin subtitle provider, so Jellyfin's own
 
 ## Features
 
-- Searches subs.ro by **title + year** (movies only).
-- Downloads the subtitle archive (`.zip`/`.rar`), extracts the largest `.srt`, and
-  re-encodes it to **UTF-8** so Romanian diacritics (ă â î ș ț) render correctly on all
-  clients.
-- Works **anonymously** — no subs.ro account required.
+- Works for **movies and TV episodes**.
+- Searches subs.ro by **IMDb/TMDb id** when Jellyfin knows one, falling back to
+  **title + year** (movies) or **series name** (episodes).
+- For episodes, rejects results for the wrong season outright (subs.ro tags TV results
+  per-season, in free text only) and requires the archive to actually contain the
+  requested episode rather than guessing.
+- Ranks multiple results by how well their release notes match the video's own file name
+  (resolution, source, codec, release group, ...), not just by download count.
+- Downloads the subtitle archive (`.zip`/`.rar`), extracts the best-matching `.srt` (same
+  release-matching logic, falling back to the largest `.srt` when nothing matches or there's
+  only one), and re-encodes it to **UTF-8** so Romanian diacritics (ă â î ș ț) render
+  correctly on all clients.
+- Works **anonymously** by default — no subs.ro account required. Optionally, set a subs.ro
+  **API key** in the plugin's configuration page to search/download via subs.ro's official
+  API instead of the public site; the anonymous flow is still used as a fallback if the API
+  call fails or returns nothing.
 
 ## Requirements
 
@@ -53,14 +64,25 @@ unavailable the script falls back to a manual `dotnet publish` + zip (without a
 3. New movies fetch subtitles on import. For existing movies, run
    **Dashboard → Scheduled Tasks → Download missing subtitles** (or use the per-item
    subtitle search, where **subs.ro** appears as a source).
+4. *(Optional)* Go to **Dashboard → Plugins → subs.ro** and paste a subs.ro API key to use
+   the official API instead of the anonymous public site. Generate a key from your subs.ro
+   account. Leave blank to keep working anonymously.
 
 ## How matching works
 
-- Matching is by **title + year** only. subs.ro's IMDB/TMDB id search is non-functional,
-  so it is not used.
+- Matching prefers the **IMDb id**, then **TMDb id** (both via subs.ro), falling back to
+  **title + year** (movies) or **series name** (episodes) if neither id gets a match.
 - Language is fixed to **Romanian**; the provider returns no results for other languages.
-- When a subtitle archive contains multiple `.srt` files (multi-CD or several release
-  variants), the **largest** `.srt` is returned.
+- When there are multiple results, or a result's archive contains multiple `.srt` files
+  (multi-CD or several release variants), the entry whose release name best matches the
+  video's own file name wins; ties (or no match at all) fall back to download count, then
+  file size.
+- For episodes, results are additionally required to actually be the searched series (not
+  just a title that happens to contain its name) and, when a season can be determined from
+  a result's title/note, to be for the requested season. Within a season archive, the
+  entry must carry the requested episode's own `SxxExx` marker — a partial-season upload
+  that doesn't include the requested episode fails with a clear error instead of silently
+  downloading the wrong one.
 
 ## Tests
 

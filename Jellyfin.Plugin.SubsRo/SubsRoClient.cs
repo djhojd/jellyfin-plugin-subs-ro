@@ -27,23 +27,26 @@ public sealed class SubsRoClient
     }
 
     /// <summary>
-    /// Searches subs.ro for subtitles matching the supplied title and year.
+    /// Searches subs.ro for Romanian subtitles matching the supplied title and year, or an
+    /// IMDb/TMDb id when known (subs.ro accepts either, as a bare numeric id with no "tt"
+    /// prefix, in the same <c>external_id</c> field).
     /// </summary>
     /// <param name="title">The movie title.</param>
     /// <param name="year">The production year, if known.</param>
+    /// <param name="externalId">The bare numeric IMDb or TMDb id, if known.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The raw HTML fragment of search results.</returns>
-    public async Task<string> SearchAsync(string title, int? year, CancellationToken cancellationToken)
+    public async Task<string> SearchAsync(string title, int? year, string? externalId, CancellationToken cancellationToken)
     {
         await EnsureTokenAsync(cancellationToken);
-        var html = await PostSearchAsync(title, year, cancellationToken);
+        var html = await PostSearchAsync(title, year, externalId, cancellationToken);
 
         if (IsErrorOrEmpty(html))
         {
             _logger.LogDebug("subs.ro search returned no usable state; refreshing token and retrying for {Title}", title);
             _antispam = null;
             await EnsureTokenAsync(cancellationToken);
-            html = await PostSearchAsync(title, year, cancellationToken);
+            html = await PostSearchAsync(title, year, externalId, cancellationToken);
         }
 
         return html;
@@ -77,18 +80,24 @@ public sealed class SubsRoClient
         _antispam = ExtractAntispam(body) ?? string.Empty;
     }
 
-    private async Task<string> PostSearchAsync(string title, int? year, CancellationToken cancellationToken)
+    private async Task<string> PostSearchAsync(string title, int? year, string? externalId, CancellationToken cancellationToken)
     {
         var fields = new List<KeyValuePair<string, string>>
         {
             new("titlu-film", title),
             new("type", "subtitrari"),
+            new("limba", "ro"),
             new("antispam", _antispam ?? string.Empty),
         };
 
         if (year is > 0)
         {
             fields.Add(new("an", year.Value.ToString(CultureInfo.InvariantCulture)));
+        }
+
+        if (!string.IsNullOrEmpty(externalId))
+        {
+            fields.Add(new("external_id", externalId));
         }
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "/ajax/search")

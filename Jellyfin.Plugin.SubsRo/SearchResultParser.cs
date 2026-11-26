@@ -1,3 +1,5 @@
+using System.Globalization;
+using AngleSharp.Dom;
 using AngleSharp.Html.Parser;
 
 namespace Jellyfin.Plugin.SubsRo;
@@ -25,6 +27,11 @@ public static class SearchResultParser
 
         foreach (var card in doc.QuerySelectorAll("[data-subtitle-result]"))
         {
+            if (!IsRomanian(card))
+            {
+                continue;
+            }
+
             var link = card.QuerySelector("a[data-search-result-link]")
                 ?? card.QuerySelector("a[href*='/subtitrare/']");
             if (link is null)
@@ -42,10 +49,63 @@ public static class SearchResultParser
                 continue;
             }
 
-            results.Add(new SubsRoSearchResult(id, slug, title));
+            results.Add(new SubsRoSearchResult(
+                id,
+                slug,
+                title,
+                ExtractUploader(card),
+                ExtractNote(card),
+                ExtractDownloadCount(card)));
         }
 
         return results;
+    }
+
+    private static bool IsRomanian(IElement card)
+        => card.QuerySelector("img[src*='flag-rom']") is not null;
+
+    private static string? ExtractUploader(IElement card)
+    {
+        var label = card.QuerySelectorAll("span.font-medium.text-gray-700")
+            .FirstOrDefault(s => s.TextContent.Trim() is "Uploader:");
+        var value = label?.ParentElement?.TextContent;
+        if (value is null)
+        {
+            return null;
+        }
+
+        var uploader = value.Replace("Uploader:", string.Empty, StringComparison.Ordinal).Trim();
+        return string.IsNullOrEmpty(uploader) ? null : uploader;
+    }
+
+    private static string? ExtractNote(IElement card)
+    {
+        var note = card.QuerySelector("div.leading-relaxed")?.TextContent;
+        if (string.IsNullOrEmpty(note))
+        {
+            return null;
+        }
+
+        var normalized = string.Join(' ', note.Split(
+            (char[]?)null, StringSplitOptions.RemoveEmptyEntries)).Trim();
+        return string.IsNullOrEmpty(normalized) ? null : normalized;
+    }
+
+    private static int? ExtractDownloadCount(IElement card)
+    {
+        var countText = card.QuerySelector("img.opacity-60[src$='download.svg']")
+            ?.ParentElement
+            ?.QuerySelector("span")
+            ?.TextContent
+            .Trim();
+
+        return int.TryParse(
+            countText,
+            NumberStyles.Integer | NumberStyles.AllowThousands,
+            CultureInfo.InvariantCulture,
+            out var count)
+            ? count
+            : null;
     }
 
     private static (string? Id, string? Slug) ParseHref(string href)

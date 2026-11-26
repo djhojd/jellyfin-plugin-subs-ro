@@ -27,14 +27,30 @@ public class SubsRoClientTests
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://subs.ro") };
         var client = new SubsRoClient(http, NullLogger<SubsRoClient>.Instance);
 
-        var html = await client.SearchAsync("X", 2020, CancellationToken.None);
+        var html = await client.SearchAsync("X", 2020, null, CancellationToken.None);
 
         Assert.Contains("data-subtitle-result", html);
         var postBody = handler.RequestBodies[^1];
         Assert.Contains("titlu-film=X", postBody);
         Assert.Contains("an=2020", postBody);
         Assert.Contains("type=subtitrari", postBody);
+        Assert.Contains("limba=ro", postBody);
         Assert.Contains("antispam=tok123", postBody);
+        Assert.DoesNotContain("external_id", postBody);
+    }
+
+    [Fact]
+    public async Task SearchAsync_WithExternalId_IncludesExternalIdField()
+    {
+        var handler = new StubHttpMessageHandler(req =>
+            req.RequestUri!.AbsolutePath.Contains("cautare") ? Ok(CautarePage) : Ok(ResultsHtml));
+        var http = new HttpClient(handler) { BaseAddress = new Uri("https://subs.ro") };
+        var client = new SubsRoClient(http, NullLogger<SubsRoClient>.Instance);
+
+        await client.SearchAsync(string.Empty, null, "3626476", CancellationToken.None);
+
+        var postBody = handler.RequestBodies[^1];
+        Assert.Contains("external_id=3626476", postBody);
     }
 
     [Fact]

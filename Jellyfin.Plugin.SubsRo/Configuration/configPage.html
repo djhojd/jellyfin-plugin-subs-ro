@@ -10,12 +10,50 @@
         <p>
           Downloads Romanian subtitles from subs.ro. To use it, open your movie
           library settings and add <strong>Romanian</strong> as a subtitle download
-          language, then enable subtitle downloading. No configuration is required here.
+          language, then enable subtitle downloading.
         </p>
+        <form id="SubsRoConfigForm">
+          <div class="inputContainer">
+            <label class="inputLabel inputLabelUnfocused" for="ApiKey">subs.ro API key (optional)</label>
+            <input id="ApiKey" name="ApiKey" type="text" is="emby-input" />
+            <div class="fieldDescription">
+              Optional. Generate one from your subs.ro account to search and download via
+              subs.ro's official API instead of the public site. Leave blank to keep working
+              anonymously — no subs.ro account required.
+            </div>
+          </div>
+          <div>
+            <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+              <span>Save</span>
+            </button>
+          </div>
+        </form>
       </div>
     </div>
     <script type="text/javascript">
       var SubsRoConfig = { pluginUniqueId: 'a3d5c7e9-1b2f-4a6d-8c3e-9f0b1d2e4c5a' };
+
+      document.querySelector('#SubsRoConfigPage')
+        .addEventListener('pageshow', function () {
+          Dashboard.showLoadingMsg();
+          ApiClient.getPluginConfiguration(SubsRoConfig.pluginUniqueId).then(function (config) {
+            document.querySelector('#ApiKey').value = config.ApiKey || '';
+            Dashboard.hideLoadingMsg();
+          });
+        });
+
+      document.querySelector('#SubsRoConfigForm')
+        .addEventListener('submit', function (e) {
+          e.preventDefault();
+          Dashboard.showLoadingMsg();
+          ApiClient.getPluginConfiguration(SubsRoConfig.pluginUniqueId).then(function (config) {
+            config.ApiKey = document.querySelector('#ApiKey').value;
+            ApiClient.updatePluginConfiguration(SubsRoConfig.pluginUniqueId, config).then(function (result) {
+              Dashboard.processPluginConfigurationUpdateResult(result);
+            });
+          });
+          return false;
+        });
     </script>
   </div>
 </body>
