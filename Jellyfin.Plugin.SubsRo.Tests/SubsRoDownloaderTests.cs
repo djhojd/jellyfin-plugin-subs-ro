@@ -392,6 +392,72 @@ public class SubsRoDownloaderTests
         Assert.Equal("129412|first-knight-1995|First.Knight.1995.WEB-DL.HEVC-TEPES", results[0].Id);
     }
 
+    private static (string MediaPath, string Dir) CreateVideoWithSidecar(string? sidecarName)
+    {
+        var dir = Directory.CreateTempSubdirectory("subsro-").FullName;
+        var mediaPath = Path.Combine(dir, "First.Knight.1995.WEB-DL.mkv");
+        File.WriteAllBytes(mediaPath, Array.Empty<byte>());
+        if (sidecarName is not null)
+        {
+            File.WriteAllText(Path.Combine(dir, sidecarName), "1\n00:00:01,000 --> 00:00:02,000\nhi\n");
+        }
+
+        return (mediaPath, dir);
+    }
+
+    private static SubtitleSearchRequest MovieRequest(string mediaPath, bool isAutomated) => new()
+    {
+        ContentType = VideoContentType.Movie,
+        Name = "First Knight",
+        ProductionYear = 1995,
+        Language = "ron",
+        TwoLetterISOLanguageName = "ro",
+        MediaPath = mediaPath,
+        IsAutomated = isAutomated,
+    };
+
+    [Theory]
+    [InlineData("First.Knight.1995.WEB-DL.srt")]
+    [InlineData("First.Knight.1995.WEB-DL.ro.srt")]
+    [InlineData("First.Knight.1995.WEB-DL.rom.srt")]
+    [InlineData("FIRST.KNIGHT.1995.WEB-DL.Romanian.ass")]
+    public async Task Search_Automated_UntaggedOrRomanianSidecar_SkipsWithoutHttp(string sidecar)
+    {
+        var (mediaPath, dir) = CreateVideoWithSidecar(sidecar);
+        try
+        {
+            var downloader = new SubsRoDownloader(
+                NullLogger<SubsRoDownloader>.Instance, BuildUnusedScrapeClient(), BuildUnusedApiClient());
+
+            Assert.Empty(await downloader.Search(MovieRequest(mediaPath, isAutomated: true), CancellationToken.None));
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData("First.Knight.1995.WEB-DL.en.srt", true)]
+    [InlineData("First.Knight.1995.WEB-DL.forced.srt", true)]
+    [InlineData("First.Knight.1995.WEB-DL2.srt", true)]
+    [InlineData("First.Knight.1995.WEB-DL.srt", false)]
+    public async Task Search_SidecarThatDoesNotCount_OrManualSearch_StillSearches(string? sidecar, bool isAutomated)
+    {
+        var (mediaPath, dir) = CreateVideoWithSidecar(sidecar);
+        try
+        {
+            var results = await BuildDownloader().Search(MovieRequest(mediaPath, isAutomated), CancellationToken.None);
+
+            Assert.Single(results);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
     [Fact]
     public async Task GetSubtitles_EpisodeMarker_ArchiveMissingRequestedEpisode_Throws()
     {

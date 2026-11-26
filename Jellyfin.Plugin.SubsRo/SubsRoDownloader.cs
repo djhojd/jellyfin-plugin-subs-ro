@@ -16,6 +16,10 @@ public class SubsRoDownloader : ISubtitleProvider
     private const string ApiIdPrefix = "api|";
     private const string EpisodeIdMarker = "ep";
 
+    private static readonly string[] SubtitleExtensions = { ".srt", ".ass", ".ssa", ".sub", ".vtt" };
+    private static readonly string[] RomanianTags = { "ro", "ron", "rum", "rom", "romanian", "romana" };
+    private static readonly char[] TagSeparators = { '.', '-', '_', ' ' };
+
     private readonly ILogger<SubsRoDownloader> _logger;
     private readonly SubsRoClient _client;
     private readonly SubsRoApiClient _apiClient;
@@ -50,6 +54,14 @@ public class SubsRoDownloader : ISubtitleProvider
 
         if (string.IsNullOrWhiteSpace(searchTitle) || !IsRomanian(request))
         {
+            return Array.Empty<RemoteSubtitleInfo>();
+        }
+
+        if (request.IsAutomated && HasUntaggedOrRomanianSidecar(request.MediaPath))
+        {
+            _logger.LogInformation(
+                "Skipping automatic subs.ro search for {MediaPath}: an untagged or Romanian subtitle file is already next to it",
+                request.MediaPath);
             return Array.Empty<RemoteSubtitleInfo>();
         }
 
@@ -345,6 +357,53 @@ public class SubsRoDownloader : ISubtitleProvider
             item.Translator,
             item.Description,
             Type: item.Type);
+
+    /// <summary>
+    /// Whether a subtitle file next to the video (named after it, like Jellyfin's own sidecar
+    /// convention) is untagged or tagged Romanian. Jellyfin skips the automatic download only
+    /// when a sidecar's language exactly equals the configured code, so an untagged sidecar, or
+    /// one tagged <c>.rom</c> (which Jellyfin reads as Romani), would otherwise get a duplicate.
+    /// </summary>
+    private static bool HasUntaggedOrRomanianSidecar(string? mediaPath)
+    {
+        var dir = Path.GetDirectoryName(mediaPath);
+        if (string.IsNullOrEmpty(dir))
+        {
+            return false;
+        }
+
+        var videoName = Path.GetFileNameWithoutExtension(mediaPath)!;
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(dir))
+            {
+                var name = Path.GetFileNameWithoutExtension(file);
+                if (!SubtitleExtensions.Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase)
+                    || !name.StartsWith(videoName, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var tag = name[videoName.Length..];
+                if (tag.Length > 0 && Array.IndexOf(TagSeparators, tag[0]) < 0)
+                {
+                    continue; // a different video whose name merely starts with this one's
+                }
+
+                var tokens = tag.Split(TagSeparators, StringSplitOptions.RemoveEmptyEntries);
+                if (tokens.Length == 0 || tokens.Any(t => RomanianTags.Contains(t, StringComparer.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // An unreadable folder must not block downloads; fall through to a normal search.
+        }
+
+        return false;
+    }
 
     private static bool IsRomanian(SubtitleSearchRequest request)
         => string.Equals(request.TwoLetterISOLanguageName, "ro", StringComparison.OrdinalIgnoreCase)
