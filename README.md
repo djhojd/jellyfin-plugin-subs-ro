@@ -48,7 +48,19 @@ unavailable the script falls back to a manual `dotnet publish` + zip (without a
 
 ## Install
 
-1. Run `pwsh ./build.ps1` and locate `artifacts/subs-ro_<version>.zip`.
+### From the plugin repository (recommended)
+
+1. In Jellyfin, go to **Dashboard → Plugins → Repositories** (or **Catalog → ⚙**) and add a
+   repository with this URL:
+   `https://github.com/djhojd/jellyfin-plugin-subs-ro/releases/latest/download/manifest.json`
+2. Open the **Catalog**, find **subs.ro** under *Subtitles*, and install it.
+3. Restart the Jellyfin server. Updates then show up in the catalog like any other plugin.
+
+### Manually
+
+1. Download `subs-ro_<version>.zip` from the
+   [latest release](https://github.com/djhojd/jellyfin-plugin-subs-ro/releases/latest), or
+   run `pwsh ./build.ps1` and locate `artifacts/subs-ro_<version>.zip`.
 2. Create a folder for the plugin inside your Jellyfin `plugins` directory, e.g.
    `plugins/subs.ro_1.0.0.0/`, and extract the zip's contents into it.
    - Linux: `/var/lib/jellyfin/plugins/`
@@ -97,6 +109,15 @@ dotnet test --filter "Category=Live"
 The live test is intentionally excluded from the default unit run. If it fails after
 passing before, subs.ro likely changed its markup or endpoints — update the fixtures in
 the unit tests first, then the production code, then re-verify.
+
+## Releasing
+
+1. Set the new version (four parts, e.g. `1.1.0.0`) in both `Directory.Build.props` and
+   `build.yaml`, and replace `changelog` in `build.yaml` with this release's changes.
+2. Merge that to `main`, then tag and push: `git tag v1.1.0.0 && git push origin v1.1.0.0`.
+3. The release workflow checks the tag matches both versions, runs the unit tests, builds
+   the zip, and publishes a GitHub release with the zip and an updated `manifest.json` that
+   still lists earlier versions.
 
 ## License
 

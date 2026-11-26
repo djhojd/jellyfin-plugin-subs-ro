@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  JPRM: jprm==1.1.0
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+
+      - name: Check tag matches version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="$(yq '.version' build.yaml)"
+          props="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props)"
+          if [ "$TAG" != "v$version" ] || [ "$props" != "$version" ]; then
+            echo "::error::Tag $TAG must be v<version>, and build.yaml ($version) and Directory.Build.props ($props) must agree."
+            exit 1
+          fi
+
+      - name: Unit tests
+        run: dotnet test --filter "Category!=Live"
+
+      - name: Package
+        run: |
+          mkdir -p artifacts
+          uvx --from "$JPRM" jprm plugin build . --output artifacts
+
+      - name: Build repository manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          mkdir -p repo
+          # Start from the previous release's manifest so earlier versions stay installable.
+          gh release download --repo "$GITHUB_REPOSITORY" --pattern manifest.json --dir repo \
+            || uvx --from "$JPRM" jprm repo init repo
+          zip="$(ls artifacts/*.zip)"
+          uvx --from "$JPRM" jprm repo add \
+            --plugin-url "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$(basename "$zip")" \
+            repo "$zip"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" artifacts/*.zip repo/manifest.json --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes --verify-tag

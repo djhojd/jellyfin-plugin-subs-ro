@@ -6,8 +6,8 @@ framework: "net10.0"
 overview: "Download Romanian subtitles from subs.ro"
 description: >
   Subtitle provider that downloads Romanian (RO) subtitles from subs.ro for
-  movies that are missing them. Configure Romanian as a subtitle download
-  language on your movie library to use it.
+  movies and TV episodes that are missing them. Configure Romanian as a
+  subtitle download language on your library to use it.
 category: "Subtitles"
 owner: "djhojd"
 artifacts:
