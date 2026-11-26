@@ -18,3 +18,4 @@ changelog: |
   - Targets Jellyfin 12.4.
   - Automatic downloads skip videos that already have an untagged or Romanian subtitle file next to them.
   - Optional subs.ro API key, release-name matching and TV episode support.
+  - Paces requests to subs.ro and backs off when it answers 429 Too Many Requests.
