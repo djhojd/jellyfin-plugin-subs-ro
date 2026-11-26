@@ -9,6 +9,8 @@ updates:
     ignore:
       # Must match the server version in build.yaml's targetAbi; bump together with the server.
       - dependency-name: Jellyfin.*
+      # The server loads its own copy at runtime, so a newer one compiles but breaks the plugin.
+      - dependency-name: Microsoft.Extensions.*
     groups:
       nuget-minor-and-patch:
         update-types: [minor, patch]
