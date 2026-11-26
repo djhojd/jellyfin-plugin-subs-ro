@@ -28,12 +28,12 @@ The plugin registers as a standard Jellyfin subtitle provider, so Jellyfin's own
 
 ## Requirements
 
-- Jellyfin server **10.11.x** (.NET 9). For the 10.10 line you would need to retarget to
-  `net8.0` / `Jellyfin.Controller` 10.10.x.
+- Jellyfin server **12.4** or newer (.NET 10). For 10.11.x you would need to retarget to
+  `net9.0` / `Jellyfin.Controller` 10.11.x.
 
 ## Build
 
-The plugin builds with the .NET 9 SDK. Packaging uses
+The plugin builds with the .NET 10 SDK. Packaging uses
 [`jprm`](https://github.com/oddstr13/jellyfin-plugin-repository-manager), run via
 [`uvx`](https://docs.astral.sh/uv/) so nothing is installed globally.
 

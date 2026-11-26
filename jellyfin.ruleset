@@ -16,6 +16,8 @@
   <Rules AnalyzerId="Microsoft.CodeAnalysis.CSharp" RuleNamespace="Microsoft.CodeAnalysis.CSharp">
     <Rule Id="CA2007" Action="None" />
     <Rule Id="CA1848" Action="None" />
+    <!-- Upstream Jellyfin 12.x .editorconfig also demotes this to a suggestion. -->
+    <Rule Id="CA1873" Action="Info" />
     <Rule Id="CA1724" Action="None" />
     <Rule Id="CA1031" Action="Info" />
     <Rule Id="CA1062" Action="Info" />
