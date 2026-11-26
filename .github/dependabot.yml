@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directories:
+      - /Jellyfin.Plugin.SubsRo
+      - /Jellyfin.Plugin.SubsRo.Tests
+    schedule:
+      interval: weekly
+    ignore:
+      # Must match the server version in build.yaml's targetAbi; bump together with the server.
+      - dependency-name: Jellyfin.*
+    groups:
+      nuget-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
