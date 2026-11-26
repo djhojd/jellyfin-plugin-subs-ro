@@ -99,13 +99,12 @@ public static class SearchResultParser
             ?.TextContent
             .Trim();
 
-        return int.TryParse(
+        var parsed = int.TryParse(
             countText,
             NumberStyles.Integer | NumberStyles.AllowThousands,
             CultureInfo.InvariantCulture,
-            out var count)
-            ? count
-            : null;
+            out var count);
+        return parsed ? count : null;
     }
 
     private static (string? Id, string? Slug) ParseHref(string href)
